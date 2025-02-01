@@ -1,7 +1,7 @@
 1. First pip install yolov8 in terminal with following prompt
 pip install ultralytics==8.2.103
 
-2. Download the follwoing zip file titled "datasets.zip" it will contain a data.yaml file plus the dataset with annotations. Unzip this folder.
+2. Download the following zip file titled "datasets.zip" it will contain a data.yaml file plus the dataset with annotations. Unzip this folder.
 drive.google.com/file/d/1sihD8NlyA3f2cak2zmRrLMx0Z6yGOq8Y/view?usp=sharing
 
 3. Enter the following command in your terminal but rename the directory to where the datasets folder is: 
