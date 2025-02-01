@@ -1,0 +1,17 @@
+1. First pip install yolov8 in terminal with following prompt
+pip install ultralytics==8.2.103
+
+2. Download the zip file in this folder titled "datasets.zip" it will contain a data.yaml file plus the dataset with annotations. Unzip this folder.
+
+3. Enter the following command in your terminal but rename the directory to where the datasets folder is: 
+yolo task=detect mode=train model=yolov8s.pt data="/Users/pranavgowrish/Downloads/python/datasets"/data.yaml epochs=25 imgsz=800 plots=True
+
+4. Wait until the model finishes training with the dataset. This may take a few hours depending on your GPU. My macbook was extremely slow for this(6+ hours) so I gave up
+
+5. When complete you should see this:
+Results saved to runs/detect/train
+Best model saved to runs/detect/train/weights/best.pt
+
+6. Go to the location and upload the best.pt file to this github folder!
+
+7. THANK YOUUUUUU, this is definitely going to be much faster than roboflow inferences
