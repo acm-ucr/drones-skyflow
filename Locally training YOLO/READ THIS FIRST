@@ -7,7 +7,7 @@ drive.google.com/file/d/1sihD8NlyA3f2cak2zmRrLMx0Z6yGOq8Y/view?usp=sharing
 3. Enter the following command in your terminal but rename the directory to where the datasets folder is: 
 yolo task=detect mode=train model=yolov8s.pt data="/Users/pranavgowrish/Downloads/python/datasets"/data.yaml epochs=25 imgsz=800 plots=True
 
-4. Wait until the model finishes training with the dataset. This may take a few hours depending on your GPU. My macbook was extremely slow for this(6+ hours) so I gave up
+4. Wait until the model finishes training with the dataset. This may take a few hours depending on your GPU. My macbook was extremely slow for this(6+ hours) so I used Google CoLabs instead.
 
 5. When complete you should see this:
 Results saved to runs/detect/train
