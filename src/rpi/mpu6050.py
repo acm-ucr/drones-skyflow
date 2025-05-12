@@ -6,7 +6,7 @@ import mpu6050
 import math
 import time
 
-# create mpu6050 object
+# create mpu6050 objec  t
 mpu6050 = mpu6050.mpu6050(0x68)
 
 # get accel and gyro data
@@ -22,7 +22,7 @@ while True:
   # g and deg/s
   accel_data, gyro_data = read_sensor_data()
   
-  # print(f"accel_data: {accel_data}, gyro_data: {gyro_data}")
+  print(f"accel_data: {accel_data}, gyro_data: {gyro_data}")
   
   # delay for terminal output
   # time.sleep(1)
