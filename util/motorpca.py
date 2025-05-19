@@ -35,12 +35,12 @@ signal.signal(signal.SIGINT, emergency_stop)
 
 try:
     # Define motor pins (channels) and their initial speeds and max speeds
-    motor_channels = [0, 4, 9, 12]  # Assigning motors to channels 0, 5, 9, 13
+    motor_channels = [0, 1, 2, 3]  # Assigning motors to channels 0, 5, 9, 13
     motor_speeds = {
-        0: {"current": 1000, "max": 1100},  # Motor 1: Starts at 1000µs, max at 1400µs
-        4: {"current": 1000, "max": 1100},  # Motor 2: Starts at 1000µs, max at 1500µs
-        9: {"current": 1000, "max": 2000},  # Motor 3: Starts at 1000µs, max at 1600µs
-        12: {"current": 1000, "max": 1100}  # Motor 4: Starts at 1000µs, max at 1700µs
+        0: {"current": 1000, "max": 1500},  # Motor 1: Starts at 1000µs, max at 1400µs
+        1: {"current": 1000, "max": 1500},  # Motor 2: Starts at 1000µs, max at 1500µs
+        2: {"current": 1000, "max": 1600},  # Motor 3: Starts at 1000µs, max at 1600µs
+        3: {"current": 1000, "max": 1300}  # Motor 4: Starts at 1000µs, max at 1700µs
     }
 
     # Arm all motors at their respective starting speeds
@@ -49,32 +49,53 @@ try:
         pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(motor_speeds[motor_channel]["current"])
     time.sleep(5)
 
-    # Increase throttle on all motors simultaneously but at different speeds
+
+    pca.channels[0].duty_cycle = pulse_us_to_duty(1500)
+    pca.channels[1].duty_cycle = pulse_us_to_duty(1500)
+    pca.channels[2].duty_cycle = pulse_us_to_duty(1600)
+    pca.channels[3].duty_cycle = pulse_us_to_duty(1300)
+
+    time.sleep(6)
+
+    pca.channels[0].duty_cycle = pulse_us_to_duty(1100)
+    pca.channels[1].duty_cycle = pulse_us_to_duty(1100)
+    pca.channels[2].duty_cycle = pulse_us_to_duty(1100)
+    pca.channels[3].duty_cycle = pulse_us_to_duty(1100)
+
+    time.sleep(0.5)
+
+    pca.channels[0].duty_cycle = pulse_us_to_duty(1000)
+    pca.channels[1].duty_cycle = pulse_us_to_duty(1000)
+    pca.channels[2].duty_cycle = pulse_us_to_duty(1000)
+    pca.channels[3].duty_cycle = pulse_us_to_duty(1000)
+
+
+    # # Increase throttle on all motors simultaneously but at different speeds
     print("Increasing throttle on all motors...")
-    for us in range(1000, 2100, 50):  # General ramping for the motors
-        print(f"Throttle: {us}µs")
-        for motor_channel in motor_channels:
-            # Increase each motor's speed separately
-            if motor_speeds[motor_channel]["current"] < motor_speeds[motor_channel]["max"]:
-                motor_speeds[motor_channel]["current"] = min(motor_speeds[motor_channel]["current"] + 50, motor_speeds[motor_channel]["max"])
-            pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(motor_speeds[motor_channel]["current"])
-        time.sleep(0.5)
+    # for us in range(1000, 2100, 50):  # General ramping for the motors
+    #     print(f"Throttle: {us}µs")
+    #     for motor_channel in motor_channels:
+    #         # Increase each motor's speed separately
+    #         if motor_speeds[motor_channel]["current"] < motor_speeds[motor_channel]["max"]:
+    #             motor_speeds[motor_channel]["current"] = min(motor_speeds[motor_channel]["current"] + 50, motor_speeds[motor_channel]["max"])
+    #         pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(motor_speeds[motor_channel]["current"])
+    #     time.sleep(0.5)
 
     # Decrease throttle on all motors at different rates
     print("Decreasing throttle on all motors...")
-    for us in range(1500, 999, -50):
-        print(f"Throttle: {us}µs")
-        for motor_channel in motor_channels:
-            # Decrease each motor's speed separately
-            if motor_speeds[motor_channel]["current"] > 1000:
-                motor_speeds[motor_channel]["current"] = max(motor_speeds[motor_channel]["current"] - 50, 1000)
-            pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(motor_speeds[motor_channel]["current"])
-        time.sleep(0.5)
+    # for us in range(1500, 999, -50):
+    #     print(f"Throttle: {us}µs")
+    #     for motor_channel in motor_channels:
+    #         # Decrease each motor's speed separately
+    #         if motor_speeds[motor_channel]["current"] > 1000:
+    #             motor_speeds[motor_channel]["current"] = max(motor_speeds[motor_channel]["current"] - 50, 1000)
+    #         pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(motor_speeds[motor_channel]["current"])
+    #     time.sleep(0.5)
 
     print("Stopping all motors.")
-    for motor_channel in motor_channels:
-        pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(1000)
-    time.sleep(2)
+    # for motor_channel in motor_channels:
+    #     pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(1000)
+    # time.sleep(2)
 
     print("\nAll motors tested successfully.")
 
