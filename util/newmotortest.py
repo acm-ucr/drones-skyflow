@@ -10,6 +10,43 @@ import mpu6050
 import math
 import time
 
+class PIDController:
+    def __init__(self, Kp, Ki, Kd, setpoint, dt):
+        self.Kp = Kp
+        self.Ki = Ki
+        self.Kd = Kd
+        self.setpoint = setpoint
+        self.dt = time.time()
+        self.integral = 0
+        self.previous_error = 0
+
+    def update(self, current_value):
+        error = self.setpoint - current_value
+        self.integral += error * self.dt
+        # Avoid division by zero if dt is very small or zero
+        if self.dt > 1e-9:
+            derivative = (error - self.previous_error) / self.dt
+        else:
+            derivative = 0.0
+        output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
+        self.previous_error = error
+        return output
+
+    def reset(self):
+        self.integral = 0
+        self.previous_error = 0
+
+Kp = 25
+Ki = 15
+Kd = 5
+setpoint_roll = 0.0
+setpoint_pitch = 0.0
+setpoint_yaw = 0.0
+piddt = 0.001
+pid_roll = PIDController(Kp, Ki, Kd, setpoint_roll, piddt)
+pid_pitch = PIDController(Kp, Ki, Kd, setpoint_pitch, piddt)
+pid_yaw = PIDController(Kp, Ki, Kd, setpoint_yaw, piddt) #1/50th of a second
+
 # Initialize MPU6050
 mpu = mpu6050.mpu6050(0x68)
 
@@ -24,7 +61,8 @@ def read_sensor_data():
     gyro = mpu.get_gyro_data()
     return accel, gyro
 
-def get_balanced_throttles(base_throttle=1300):
+def get_balanced_throttles(base_throttle=1000):
+    global roll_torque, pitch_torque, yaw_torque, accel_force
     global complementaryPitch, complementaryRoll, last_time
 
     # Time delta
@@ -35,20 +73,23 @@ def get_balanced_throttles(base_throttle=1300):
     # Read sensors
     accel_data, gyro_data = read_sensor_data()
 
-    # Compute angles from accelerometer
+    ## Compute angles from accelerometer
     try:
         pitch_acc = math.atan2(accel_data['x'], math.sqrt(accel_data['y']**2 + accel_data['z']**2))
         roll_acc = math.atan2(accel_data['y'], accel_data['z'])
     except ZeroDivisionError:
-        return {i: base_throttle for i in range(4)}
+        pitch_acc = estimated_roll
+        roll_acc = estimated_pitch
 
-    # Gyro rates in deg/s
+
+    ## Gyro rates in deg/s
     gyro_pitch_rate = gyro_data['y']
     gyro_roll_rate = gyro_data['x']
 
     # Apply complementary filter
     complementaryPitch = comp_filter_gain * (complementaryPitch + math.radians(gyro_pitch_rate) * dt) + (1 - comp_filter_gain) * pitch_acc
     complementaryRoll = comp_filter_gain * (complementaryRoll + math.radians(gyro_roll_rate) * dt) + (1 - comp_filter_gain) * roll_acc
+
 
     pitch_deg = math.degrees(complementaryPitch)
     roll_deg = math.degrees(complementaryRoll)
@@ -68,11 +109,15 @@ def get_balanced_throttles(base_throttle=1300):
 
     print(f"Pitch: {pitch_deg:.2f}° ({pitch_msg}), Roll: {roll_deg:.2f}° ({roll_msg})")
 
+    
+
 
     # Proportional gains (tune these!)
     pitch_kp = 1.2
     roll_kp = 1.2
 
+    pitch_torque = pid_roll.update(complementaryPitch)
+    roll_torque = pid_roll.update(complementaryRoll)
     # Compute pitch and roll adjustments
     pitch_adjust = pitch_kp * pitch_deg
     roll_adjust = roll_kp * roll_deg
@@ -83,12 +128,18 @@ def get_balanced_throttles(base_throttle=1300):
     # M2: Back Left
     # M3: Front Left
 
-    return {
-        0: base_throttle - pitch_adjust + roll_adjust,  # Front Right
-        1: base_throttle + pitch_adjust + roll_adjust,  # Back Right
-        2: base_throttle + pitch_adjust - roll_adjust,  # Back Left
-        3: base_throttle - pitch_adjust - roll_adjust   # Front Left
-    }
+    #return {
+    #    0: base_throttle - pitch_adjust + roll_adjust,  # Front Right
+    #    1: base_throttle + pitch_adjust + roll_adjust,  # Back Right
+    #    2: base_throttle + pitch_adjust - roll_adjust,  # Back Left
+    #    3: base_throttle - pitch_adjust - roll_adjust   # Front Left
+    #}
+    return (
+        base_throttle + pitch_torque ,  # Front Right
+        base_throttle - pitch_torque ,  # Back Right
+        base_throttle - pitch_torque ,  # Back Left
+        base_throttle + pitch_torque   # Front Left
+    )
 
 
 # Setup I2C
@@ -148,33 +199,42 @@ try:
     thread = threading.Thread(target=print_overview)
     thread.daemon = True  # dies when main program exits
     thread.start()
-    motor_speeds = {
-        0: {"current": 1000, "max": 1500},  # Motor 1: Starts at 1000µs, max at 1400µs
-        1: {"current": 1000, "max": 1500},  # Motor 2: Starts at 1000µs, max at 1500µs
-        2: {"current": 1000, "max": 1600},  # Motor 3: Starts at 1000µs, max at 1600µs
-        3: {"current": 1000, "max": 1300}  # Motor 4: Starts at 1000µs, max at 1700µs
-    }
+    #motor_speeds = {
+    #    0: {"current": 1000, "max": 1100},  # Motor 1: Starts at 1000µs, max at 1400µs
+    #    1: {"current": 1000, "max": 1100},  # Motor 2: Starts at 1000µs, max at 1500µs
+    #    2: {"current": 1000, "max": 1100},  # Motor 3: Starts at 1000µs, max at 1600µs
+    #    3: {"current": 1000, "max": 1100}  # Motor 4: Starts at 1000µs, max at 1700µs
+    #}
+    motor_speeds = (
+        1000,  # Motor 1: Starts at 1000µs, max at 1400µs
+        1000,  # Motor 2: Starts at 1000µs, max at 1500µs
+        1000,  # Motor 3: Starts at 1000µs, max at 1600µs
+        1000  # Motor 4: Starts at 1000µs, max at 1700µs
+    )
 
     # Arm all motors at their respective starting speeds
     print("Arming all ESCs at their starting speeds...")
     for motor_channel in motor_channels:
-        pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(motor_speeds[motor_channel]["current"])
+        pca.channels[motor_channel].duty_cycle = pulse_us_to_duty(motor_speeds[motor_channel])
     time.sleep(5)
 
     print("[INFO] Starting real-time balancing loop...")
-    base_throttle = 1600
+    base_throttle = 1000
+    # originally 1600
 
     start_time = time.time()
-    duration = 15  # seconds
+    duration = 60  # seconds
 
     while time.time() - start_time < duration:
         motor_throttles = get_balanced_throttles(base_throttle)
 
-        for motor_id, throttle in motor_throttles.items():
-            throttle = max(1600, min(1700, int(throttle)))  # Clamp for safety and spin-up
-            pca.channels[motor_id].duty_cycle = pulse_us_to_duty(throttle)
+        n = 0
+        for throttle in motor_throttles:
+            throttle = min(1200, max(1000, int(throttle)))  # Clamp for safety and spin-up
+            pca.channels[n].duty_cycle = pulse_us_to_duty(throttle)
+            n = n+1
 
-        time.sleep(0.05)  # 20 Hz update rate
+        time.sleep(0.001)  # 20 Hz update rate
 
 
 
